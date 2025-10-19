@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,19 +14,58 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
-        .text-caption1 { font-size: 0.875rem; line-height: 1.25rem; } /* 14px */
-        .text-h3 { font-size: 2.25rem; line-height: 2.5rem; } /* 36px */
-        .text-body3 { font-size: 1.125rem; line-height: 1.75rem; } /* 18px */
-        .text-body1 { font-size: 1rem; line-height: 1.5rem; } /* 16px */
-        .text-button1 { font-size: 1rem; line-height: 1.5rem; } /* 16px */
-        .text-brand-blue { color: #1A202C; } /* Пример цвета */
-        .bg-brand-cyan { background-color: #2DC3EB; } /* Пример цвета */
-        .border-brand-blue { border-color: #1A202C; } /* Пример цвета */
+
+        .text-caption1 {
+            font-size: 0.875rem;
+            line-height: 1.25rem;
+        }
+
+        /* 14px */
+        .text-h3 {
+            font-size: 2.25rem;
+            line-height: 2.5rem;
+        }
+
+        /* 36px */
+        .text-body3 {
+            font-size: 1.125rem;
+            line-height: 1.75rem;
+        }
+
+        /* 18px */
+        .text-body1 {
+            font-size: 1rem;
+            line-height: 1.5rem;
+        }
+
+        /* 16px */
+        .text-button1 {
+            font-size: 1rem;
+            line-height: 1.5rem;
+        }
+
+        /* 16px */
+        .text-brand-blue {
+            color: #1A202C;
+        }
+
+        /* Пример цвета */
+        .bg-brand-cyan {
+            background-color: #2DC3EB;
+        }
+
+        /* Пример цвета */
+        .border-brand-blue {
+            border-color: #1A202C;
+        }
+
+        /* Пример цвета */
         .focus\:ring-brand-cyan:focus {
             --tw-ring-color: #2DC3EB;
         }
     </style>
 </head>
+
 <body class="bg-gray-50 font-sans">
 
     <!-- Contact Section -->
@@ -73,9 +113,12 @@
                 </form>
 
                 <!-- Image Column (предполагается, что у тебя есть это изображение) -->
-                <div class="relative flex justify-center items-center w-full py-8 lg:py-16 order-first lg:order-last -mt-24">
-                    <div class="relative aspect-[833/692] w-[90%] max-w-sm sm:max-w-md lg:max-w-[833px] flex justify-center items-center">
-                        <div class="absolute -inset-x-[20%] -inset-y-[20%] z-20 filter -translate-x-10 sm:-translate-x-16 md:-translate-x-24">
+                <div
+                    class="relative flex justify-center items-center w-full py-8 lg:py-16 order-first lg:order-last -mt-24">
+                    <div
+                        class="relative aspect-[833/692] w-[90%] max-w-sm sm:max-w-md lg:max-w-[833px] flex justify-center items-center">
+                        <div
+                            class="absolute -inset-x-[20%] -inset-y-[20%] z-20 filter -translate-x-10 sm:-translate-x-16 md:-translate-x-24">
                             <svg class="w-full h-full opacity-75 blur-3xl" viewBox="0 0 833 692" fill="none"
                                 xmlns="http://www.w3.org/2000/svg">
                                 <path fill="url(#gradImgContact)"
@@ -101,7 +144,7 @@
     </section>
 
     <script>
-        document.getElementById('contactForm').addEventListener('submit', async function(event) {
+        document.getElementById('contactForm').addEventListener('submit', async function (event) {
             event.preventDefault(); // Предотвращаем стандартную отправку формы
 
             const form = event.target;
@@ -116,7 +159,8 @@
 
             try {
                 // Отправляем данные на наш Node.js сервер
-                const response = await fetch('http://localhost:3000/api/contact', {
+                // *** ИЗМЕНЕНИЕ ЗДЕСЬ: используем относительный путь вместо localhost ***
+                const response = await fetch('/api/contact', { // <-- Вот здесь было 'http://localhost:3000/api/contact'
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json' // Указываем, что отправляем JSON
@@ -139,4 +183,5 @@
         });
     </script>
 </body>
+
 </html>
