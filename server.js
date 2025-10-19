@@ -1,112 +1,138 @@
-// Загрузка переменных окружения из .env файла
+// server.js
+
+// Загрузка переменных окружения из .env файла (используется для локальной разработки)
 require('dotenv').config();
 
+// Импорт необходимых библиотек
 const express = require('express');
 const path = require('path');
-const nodemailer = require('nodemailer'); // Подключаем Nodemailer
+const nodemailer = require('nodemailer');
+const cors = require('cors'); // Middleware для обработки CORS запросов
 
+// Инициализация Express приложения
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000; // Используем порт из переменных окружения (для Render) или 3000 по умолчанию
 
 // --------------------------------------------------------------------------------
-// MIDDLEWARE
+// MIDDLEWARE (Промежуточное ПО)
 // --------------------------------------------------------------------------------
-// Для парсинга JSON-запросов (когда клиент отправляет JSON)
+
+// Включаем CORS для всех запросов. Это позволяет вашему фронтенду
+// безопасно обращаться к бэкенду.
+app.use(cors());
+
+// Middleware для парсинга JSON-данных из тела запроса (например, от fetch)
 app.use(express.json());
-// Для парсинга URL-encoded запросов (если форма отправляется без JS, или с методом post)
+
+// Middleware для парсинга данных из обычных HTML-форм
 app.use(express.urlencoded({ extended: true }));
-// Для отдачи статических файлов (HTML, CSS, JS, изображения) из папки 'public'
+
+// Middleware для раздачи статических файлов (HTML, CSS, клиентский JS, изображения)
+// из папки 'public'.
 app.use(express.static(path.join(__dirname, 'public')));
 
 
 // --------------------------------------------------------------------------------
-// КОНФИГУРАЦИЯ NODEMAILER
+// КОНФИГУРАЦИЯ NODEMAILER ДЛЯ РАБОТЫ С SENDGRID
 // --------------------------------------------------------------------------------
-// Создаем "транспортер" для отправки писем.
-// Здесь указываются данные SMTP-сервера, через который будут отправляться письма.
+
+// Создаем "транспортер" - объект, который будет отправлять письма.
+// Он настроен на использование SMTP-сервера SendGrid.
 const transporter = nodemailer.createTransport({
-    service: 'gmail', // Используем Gmail. Можешь заменить на 'outlook', 'yahoo', или настроить свой SMTP host/port.
+    host: 'smtp.sendgrid.net', // SMTP-хост SendGrid
+    port: 587,                 // Рекомендуемый порт для незащищенного соединения
+    secure: false,             // Для порта 587 secure должно быть false
     auth: {
-        user: process.env.EMAIL_USER,    // Твой email адрес из файла .env
-        pass: process.env.EMAIL_PASS    // Твой пароль приложения Gmail из файла .env
+        // Имя пользователя для аутентификации через API-ключ SendGrid всегда 'apikey'
+        user: 'apikey',
+        // Пароль - это ваш API-ключ SendGrid, который Node.js берет из переменных окружения.
+        // На Render это переменная, которую вы настроили в панели управления.
+        pass: process.env.SENDGRID_API_KEY
     }
 });
 
-// Проверка соединения с SMTP-сервером (для отладки)
+// Необязательная, но полезная функция для проверки соединения с SMTP-сервером при старте.
+// Помогает быстро диагностировать проблемы с API-ключом или сетью.
 transporter.verify(function(error, success) {
   if (error) {
-    console.error("Ошибка при подключении к SMTP-серверу:", error);
+    console.error("ОШИБКА: Не удалось подключиться к SMTP-серверу SendGrid.", error);
   } else {
-    console.log("SMTP-сервер готов принимать сообщения");
+    console.log("УСПЕХ: SMTP-сервер SendGrid готов принимать сообщения.");
   }
 });
 
 
 // --------------------------------------------------------------------------------
-// API МАРШРУТЫ
+// API МАРШРУТ ДЛЯ ОБРАБОТКИ ФОРМЫ
 // --------------------------------------------------------------------------------
 
-// API маршрут для обработки контактной формы
+// Этот маршрут будет принимать POST-запросы от вашей формы на /api/contact
 app.post('/api/contact', (req, res) => {
-  // Извлекаем данные из тела запроса
-  const { firstName, lastName, email, phone, message } = req.body;
+    // Извлекаем данные, отправленные с фронтенда
+    const { firstName, lastName, email, phone, message } = req.body;
 
-  // Простая валидация: проверяем, что обязательные поля не пустые
-  if (!firstName || !lastName || !email || !message) {
-    return res.status(400).json({ success: false, message: 'Пожалуйста, заполните все обязательные поля: Имя, Фамилия, Email, Сообщение.' });
-  }
+    // Серверная валидация: проверяем, что обязательные поля не пустые
+    if (!firstName || !lastName || !email || !message) {
+        return res.status(400).json({ success: false, message: 'Пожалуйста, заполните все обязательные поля.' });
+    }
 
-  // Опции для письма
-  const mailOptions = {
-      from: process.env.EMAIL_USER, // От кого: email, указанный в .env
-      to: 'umbra51145@gmail.com', // <--- КУДА ДОЛЖНЫ ПРИХОДИТЬ СООБЩЕНИЯ С ФОРМЫ (твой личный email или email поддержки)
-      subject: `Новое сообщение с сайта от ${firstName} ${lastName}`, // Тема письма
-      html: `
-          <h3>Новое сообщение с контактной формы:</h3>
-          <p><strong>Имя:</strong> ${firstName}</p>
-          <p><strong>Фамилия:</strong> ${lastName}</p>
-          <p><strong>Email отправителя:</strong> ${email}</p>
-          <p><strong>Телефон:</strong> ${phone || 'Не указан'}</p>
-          <p><strong>Сообщение:</strong></p>
-          <p>${message}</p>
-      `
-  };
+    // Создаем объект письма
+    const mailOptions = {
+        // !!! ОЧЕНЬ ВАЖНО: Укажите здесь email, который вы подтвердили в SendGrid !!!
+        from: 'test@gmail.com.com',
 
-  // Отправляем письмо с помощью Nodemailer
-  transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-          console.error('Ошибка отправки письма:', error);
-          // Отправляем ответ об ошибке клиенту
-          return res.status(500).json({ success: false, message: 'Не удалось отправить сообщение.', error: error.message });
-      }
-      console.log('Письмо успешно отправлено:', info.response);
-      // Отправляем ответ об успехе клиенту
-      res.status(200).json({ success: true, message: 'Сообщение успешно отправлено!' });
-  });
+        // Укажите ваш личный email, на который должны приходить письма с формы
+        to: 'umbra51145@gmail.com',
+
+        subject: `Новое сообщение с вашего сайта от ${firstName} ${lastName}`,
+        html: `
+            <h2>Новое сообщение с контактной формы на сайте:</h2>
+            <hr>
+            <p><strong>Имя:</strong> ${firstName} ${lastName}</p>
+            <p><strong>Email для ответа:</strong> <a href="mailto:${email}">${email}</a></p>
+            <p><strong>Телефон:</strong> ${phone || 'Не указан'}</p>
+            <h3>Сообщение:</h3>
+            <p>${message}</p>
+            <hr>
+        `
+    };
+
+    // Отправляем письмо с помощью созданного транспортера
+    transporter.sendMail(mailOptions, (error, info) => {
+        // Обработка ошибок
+        if (error) {
+            console.error('ОШИБКА: Не удалось отправить письмо через SendGrid:', error);
+            // Отправляем клиенту ответ с ошибкой
+            return res.status(500).json({ success: false, message: 'Произошла внутренняя ошибка при отправке сообщения.' });
+        }
+        // В случае успеха
+        console.log('УСПЕХ: Письмо успешно отправлено через SendGrid. Response:', info.response);
+        // Отправляем клиенту ответ об успехе
+        res.status(200).json({ success: true, message: 'Сообщение успешно отправлено!' });
+    });
 });
 
 
 // --------------------------------------------------------------------------------
-// МАРШРУТЫ ДЛЯ СТРАНИЦ
+// МАРШРУТЫ ДЛЯ ОТДАЧИ HTML СТРАНИЦ
 // --------------------------------------------------------------------------------
 
-// Главная страница - показываем project_management.html
+// Отдаем главный HTML-файл при заходе на корень сайта
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'contactform.html'));
+  res.sendFile(path.join(__dirname, 'public', 'project_management.html'));
 });
 
-// Домашняя страница (предположим, что это project_management.html)
-app.get('/home', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'contactform.html'));
-});
+// Если у вас есть другие страницы, их маршруты можно добавить здесь
+// app.get('/about', (req, res) => {
+//   res.sendFile(path.join(__dirname, 'public', 'about.html'));
+// });
 
-// Страница онлайн платежей (предположим, что это audits.html)
-app.get('/online-payment', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'contactform.html'));
-});
 
-// Запуск сервера
+// --------------------------------------------------------------------------------
+// ЗАПУСК СЕРВЕРА
+// --------------------------------------------------------------------------------
+
+// Сервер начинает "слушать" запросы на указанном порту
 app.listen(PORT, () => {
-  console.log(`Сервер запущен на порту ${PORT}`);
-  console.log(`Доступен по адресу: http://localhost:${PORT}`);
+  console.log(`Сервер запущен и работает на порту ${PORT}`);
 });
