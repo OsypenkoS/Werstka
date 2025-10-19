@@ -86,7 +86,7 @@ app.post('/api/contact', async (req, res) => { // <-- Обратите вним�
 // МАРШРУТЫ И ЗАПУСК СЕРВЕРА (остаются без изменений)
 // --------------------------------------------------------------------------------
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'project_management.html'));
+  res.sendFile(path.join(__dirname, 'public', 'contactform.html'));
 });
 
 app.listen(PORT, () => {
