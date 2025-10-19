@@ -1,88 +1,57 @@
 // server.js
 
-// Загрузка переменных окружения из .env файла (используется для локальной разработки)
+// Загрузка переменных окружения (для локальной разработки)
 require('dotenv').config();
 
 // Импорт необходимых библиотек
 const express = require('express');
 const path = require('path');
-const nodemailer = require('nodemailer');
-const cors = require('cors'); // Middleware для обработки CORS запросов
+const cors = require('cors');
+// Импортируем официальную библиотеку SendGrid
+const sgMail = require('@sendgrid/mail');
 
 // Инициализация Express приложения
 const app = express();
-const PORT = process.env.PORT || 3000; // Используем порт из переменных окружения (для Render) или 3000 по умолчанию
+const PORT = process.env.PORT || 3000;
 
 // --------------------------------------------------------------------------------
-// MIDDLEWARE (Промежуточное ПО)
+// MIDDLEWARE
 // --------------------------------------------------------------------------------
-
-// Включаем CORS для всех запросов. Это позволяет вашему фронтенду
-// безопасно обращаться к бэкенду.
 app.use(cors());
-
-// Middleware для парсинга JSON-данных из тела запроса (например, от fetch)
 app.use(express.json());
-
-// Middleware для парсинга данных из обычных HTML-форм
 app.use(express.urlencoded({ extended: true }));
-
-// Middleware для раздачи статических файлов (HTML, CSS, клиентский JS, изображения)
-// из папки 'public'.
 app.use(express.static(path.join(__dirname, 'public')));
 
 
 // --------------------------------------------------------------------------------
-// КОНФИГУРАЦИЯ NODEMAILER ДЛЯ РАБОТЫ С SENDGRID
+// КОНФИГУРАЦИЯ SENDGRID API
 // --------------------------------------------------------------------------------
-
-// Создаем "транспортер" - объект, который будет отправлять письма.
-// Он настроен на использование SMTP-сервера SendGrid.
-const transporter = nodemailer.createTransport({
-    host: 'smtp.sendgrid.net', // SMTP-хост SendGrid
-    port: 587,                 // Рекомендуемый порт для незащищенного соединения
-    secure: false,             // Для порта 587 secure должно быть false
-    auth: {
-        // Имя пользователя для аутентификации через API-ключ SendGrid всегда 'apikey'
-        user: 'apikey',
-        // Пароль - это ваш API-ключ SendGrid, который Node.js берет из переменных окружения.
-        // На Render это переменная, которую вы настроили в панели управления.
-        pass: process.env.SENDGRID_API_KEY
-    }
-});
-
-// Необязательная, но полезная функция для проверки соединения с SMTP-сервером при старте.
-// Помогает быстро диагностировать проблемы с API-ключом или сетью.
-transporter.verify(function(error, success) {
-  if (error) {
-    console.error("ОШИБКА: Не удалось подключиться к SMTP-серверу SendGrid.", error);
-  } else {
-    console.log("УСПЕХ: SMTP-сервер SendGrid готов принимать сообщения.");
-  }
-});
+// Устанавливаем API-ключ, который библиотека будет использовать для всех запросов.
+// Он берется из переменных окружения на Render.
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+console.log("УСПЕХ: API-ключ SendGrid установлен.");
 
 
 // --------------------------------------------------------------------------------
 // API МАРШРУТ ДЛЯ ОБРАБОТКИ ФОРМЫ
 // --------------------------------------------------------------------------------
-
-// Этот маршрут будет принимать POST-запросы от вашей формы на /api/contact
-app.post('/api/contact', (req, res) => {
-    // Извлекаем данные, отправленные с фронтенда
+app.post('/api/contact', async (req, res) => { // <-- Обратите внимание на async
     const { firstName, lastName, email, phone, message } = req.body;
 
-    // Серверная валидация: проверяем, что обязательные поля не пустые
     if (!firstName || !lastName || !email || !message) {
         return res.status(400).json({ success: false, message: 'Пожалуйста, заполните все обязательные поля.' });
     }
 
-    // Создаем объект письма
-    const mailOptions = {
-        // !!! ОЧЕНЬ ВАЖНО: Укажите здесь email, который вы подтвердили в SendGrid !!!
-        from: 'test@gmail.com.com',
+    // Создаем объект сообщения (msg) в формате, который требует @sendgrid/mail
+    const msg = {
+        // !!! Укажите ваш личный email, на который должны приходить письма
+        to: 'umbra5114@gmail.com',
 
-        // Укажите ваш личный email, на который должны приходить письма с формы
-        to: 'umbra51145@gmail.com',
+        // !!! Укажите email, который вы подтвердили в SendGrid как "Sender"
+        from: 'test@gmail.com',
+
+        // Полезная опция: когда вы нажмете "Ответить" в письме, ответ пойдет пользователю
+        reply_to: email,
 
         subject: `Новое сообщение с вашего сайта от ${firstName} ${lastName}`,
         html: `
@@ -97,42 +66,29 @@ app.post('/api/contact', (req, res) => {
         `
     };
 
-    // Отправляем письмо с помощью созданного транспортера
-    transporter.sendMail(mailOptions, (error, info) => {
-        // Обработка ошибок
-        if (error) {
-            console.error('ОШИБКА: Не удалось отправить письмо через SendGrid:', error);
-            // Отправляем клиенту ответ с ошибкой
-            return res.status(500).json({ success: false, message: 'Произошла внутренняя ошибка при отправке сообщения.' });
-        }
-        // В случае успеха
-        console.log('УСПЕХ: Письмо успешно отправлено через SendGrid. Response:', info.response);
-        // Отправляем клиенту ответ об успехе
+    // Используем try/catch для обработки асинхронных операций
+    try {
+        await sgMail.send(msg); // Отправляем сообщение
+        console.log('УСПЕХ: Письмо успешно отправлено через SendGrid Web API.');
         res.status(200).json({ success: true, message: 'Сообщение успешно отправлено!' });
-    });
+    } catch (error) {
+        console.error('ОШИБКА: Не удалось отправить письмо через SendGrid Web API:', error);
+        // Если у ошибки есть детали от SendGrid, выводим их
+        if (error.response) {
+            console.error(error.response.body);
+        }
+        res.status(500).json({ success: false, message: 'Произошла внутренняя ошибка при отправке сообщения.' });
+    }
 });
 
 
 // --------------------------------------------------------------------------------
-// МАРШРУТЫ ДЛЯ ОТДАЧИ HTML СТРАНИЦ
+// МАРШРУТЫ И ЗАПУСК СЕРВЕРА (остаются без изменений)
 // --------------------------------------------------------------------------------
-
-// Отдаем главный HTML-файл при заходе на корень сайта
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'contactform.html'));
+  res.sendFile(path.join(__dirname, 'public', 'project_management.html'));
 });
 
-// Если у вас есть другие страницы, их маршруты можно добавить здесь
-// app.get('/about', (req, res) => {
-//   res.sendFile(path.join(__dirname, 'public', 'about.html'));
-// });
-
-
-// --------------------------------------------------------------------------------
-// ЗАПУСК СЕРВЕРА
-// --------------------------------------------------------------------------------
-
-// Сервер начинает "слушать" запросы на указанном порту
 app.listen(PORT, () => {
   console.log(`Сервер запущен и работает на порту ${PORT}`);
 });
