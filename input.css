@@ -1,0 +1,187 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.btn-gradient {
+    background-image: linear-gradient(to right, #0CBAF1, #8A5CE9);
+    transition: all 0.3s ease;
+}
+.btn-gradient:hover {
+    opacity: 0.9;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+body {
+    background-color: #F9F6FA;
+    background-image: radial-gradient(circle at top right, rgba(200, 216, 243, 0.4), transparent 40%),
+                      radial-gradient(circle at bottom left, rgba(243, 200, 222, 0.3), transparent 50%);
+}
+
+.main-with-curve {
+  position: relative;
+  /* Уменьшаем отступ до разумного значения */
+  padding-bottom: 160px; 
+}
+
+.main-with-curve::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 290px;
+  background-color: #25316C;
+  clip-path: ellipse(60% 100% at 50% 150%);
+}
+
+
+/* Стили футера */
+footer {
+  background-color: #25316C;
+  color: #fff;
+  position: relative;
+  z-index: 1;
+}
+
+/* Для иконок соцсетей */
+footer svg {
+  transition: all 0.3s ease;
+}
+
+footer svg:hover {
+  color: #2CC3E9;
+  transform: translateY(-2px);
+}
+
+/* Разделительная линия */
+footer .divider {
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Цвет ссылок и ховер-эффект */
+footer a {
+  color: rgba(255, 255, 255, 0.85);
+  transition: color 0.3s ease;
+}
+
+footer a:hover {
+  color: #ffffff;
+}
+/* ./src/css/input.css */
+
+/* ... ваши @tailwind base; @tailwind components; @tailwind utilities; ... */
+
+
+/* Кастомный CSS для создания изогнутого перехода к футеру */
+.main-with-curve {
+  position: relative;
+  /* Отступ снизу, чтобы было место для кривой и части футера */
+  padding-bottom: 160px;
+}
+
+.main-with-curve::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 290px;
+  /* Высота самой фигуры */
+  background-color: #25316C;
+  /* Это ваш цвет 'brand-blue' */
+  /* Форма эллипса, которая создает идеальную кривую */
+  clip-path: ellipse(60% 100% at 50% 150%);
+}
+/* ./src/css/input.css */
+/* ... */
+
+/* Кастомный стиль для маркеров в карточках */
+.custom-list li {
+  display: flex;
+  align-items: flex-start;
+  /* Выравнивание по верху */
+}
+
+.custom-list li::before {
+  content: '•';
+  /* unicode символ точки */
+  font-weight: bold;
+  font-size: 20px;
+  /* Размер точки */
+  margin-right: 0.75rem;
+  /* Отступ справа от точки (эквивалент gap-3) */
+  line-height: 1.5;
+  /* Выравниваем точку по вертикали с текстом */
+}
+/* ./src/css/input.css */
+/* ... */
+
+/* Убираем стандартные стили списка */
+.custom-list {
+  list-style: none;
+  padding-left: 0;
+}
+
+/* Превращаем каждый элемент списка во flex-контейнер */
+.custom-list li {
+  display: flex;
+  align-items: flex-start;
+  /* Выравнивание по верху, если текст переносится */
+}
+
+/* Создаем кастомный маркер-точку */
+.custom-list li::before {
+  content: '•';
+  font-weight: bold;
+  font-size: 20px;
+  /* Размер точки соответствует text-h7 */
+  line-height: 1.2;
+  /* Подгоняем вертикальное положение точки */
+  margin-right: 0.75rem;
+  /* Отступ между точкой и текстом */
+  flex-shrink: 0;
+  /* Запрещаем маркеру сжиматься */
+}
+/* ./src/css/input.css */
+/* ... ваши @tailwind ... */
+
+/* Стили для плавного открытия/закрытия аккордеона */
+.accordion-content {
+  max-height: 0;
+  overflow: hidden;
+  /* <-- ЭТО КЛЮЧЕВОЕ СВОЙСТВО, КОТОРОЕ ВСЁ ИСПРАВИТ */
+  transition: max-height 0.3s ease-out;
+}
+.gradient-bullet li::marker {
+  color: #7054A4;
+  /* Fallback color */
+}
+
+/* Use a pseudo-element to create the gradient */
+.gradient-bullet li::before {
+  content: '•';
+  font-weight: bold;
+  font-size: 32px;
+  /* INCREASED: from 20px to 28px */
+  background: linear-gradient(to right, #2DC3EB, #7054A4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  margin-right: 0.75rem;
+  line-height: 1.1;
+  /* ADJUSTED: for better vertical alignment */
+  flex-shrink: 0;
+}
+
+.gradient-bullet li {
+  list-style: none;
+  /* Hide the default marker */
+  display: flex;
+  align-items: flex-start;
+  /* Align bullet with the top of the text */
+}
+.gradient-caption {
+  background: linear-gradient(90deg, #2DC3EB 0%, #7054A4 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
