@@ -119,7 +119,7 @@ app.post('/api/contact', (req, res) => {
 
 // Отдаем главный HTML-файл при заходе на корень сайта
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'project_management.html'));
+  res.sendFile(path.join(__dirname, 'public', 'contactform.html'));
 });
 
 // Если у вас есть другие страницы, их маршруты можно добавить здесь
