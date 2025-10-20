@@ -5,7 +5,7 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
-const axios = require('axios'); // Используем axios для HTTP-запросов
+const axios = require('axios');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,16 +22,15 @@ app.use(express.static(path.join(__dirname, 'public')));
 // --------------------------------------------------------------------------------
 const SENDPULSE_API_ID = process.env.SENDPULSE_API_ID;
 const SENDPULSE_API_SECRET = process.env.SENDPULSE_API_SECRET;
+const VERIFIED_SENDER_EMAIL = process.env.VERIFIED_SENDER_EMAIL; // <--- ИЗМЕНЕНИЕ ЗДЕСЬ: Подтягиваем новый email из env
+
 const SENDPULSE_TOKEN_URL = 'https://api.sendpulse.com/oauth/access_token';
 const SENDPULSE_SEND_EMAIL_URL = 'https://api.sendpulse.com/smtp/emails';
 
-// Переменные для кэширования токена доступа
 let sendpulseToken = null;
 let tokenExpiresAt = 0;
 
-// Функция для получения и обновления токена доступа
 async function getSendpulseToken() {
-    // Если у нас есть токен и он еще действителен, возвращаем его
     if (sendpulseToken && Date.now() < tokenExpiresAt) {
         return sendpulseToken;
     }
@@ -46,14 +45,13 @@ async function getSendpulseToken() {
 
         const { access_token, expires_in } = response.data;
         sendpulseToken = access_token;
-        // Устанавливаем время истечения с запасом в 5 минут
         tokenExpiresAt = Date.now() + (expires_in - 300) * 1000;
 
         console.log('УСПЕХ: Новый токен SendPulse получен.');
         return sendpulseToken;
     } catch (error) {
         console.error('ОШИБКА: Не удалось получить токен SendPulse:', error.response ? error.response.data : error.message);
-        return null; // В случае ошибки возвращаем null
+        return null;
     }
 }
 
@@ -68,14 +66,18 @@ app.post('/api/contact', async (req, res) => {
         return res.status(400).json({ success: false, message: 'Пожалуйста, заполните все обязательные поля.' });
     }
 
+    // Проверка, что верифицированный email был загружен из переменных окружения
+    if (!VERIFIED_SENDER_EMAIL) {
+        console.error('ОШИБКА: Переменная окружения VERIFIED_SENDER_EMAIL не установлена!');
+        return res.status(500).json({ success: false, message: 'Ошибка конфигурации сервера: не указан email отправителя.' });
+    }
+
     try {
-        // 1. Получаем действительный токен доступа
         const token = await getSendpulseToken();
         if (!token) {
             throw new Error('Не удалось получить токен аутентификации для SendPulse.');
         }
 
-        // 2. Формируем тело письма в формате, который требует SendPulse
         const emailData = {
             email: {
                 html: `
@@ -90,21 +92,19 @@ app.post('/api/contact', async (req, res) => {
                 `,
                 subject: `Новое сообщение с вашего сайта от ${firstName} ${lastName}`,
                 from: {
-                    // !!! Укажите email, который вы подтвердили в SendPulse
-                    email: 'ВАШ_ВЕРИФИЦИРОВАННЫЙ_EMAIL@example.com',
-                    name: `${firstName} ${lastName}` // Имя отправителя
+                    // <--- ИЗМЕНЕНИЕ ЗДЕСЬ: Используем email из переменных окружения
+                    email: VERIFIED_SENDER_EMAIL,
+                    name: `Форма с сайта`
                 },
                 to: [
                     {
-                        // !!! Укажите ваш личный email, на который должны приходить письма
-                        email: 'ВАШ_EMAIL_ДЛЯ_ПОЛУЧЕНИЯ_ПИСЕМ@example.com',
+                        email: 'ВАШ_EMAIL_ДЛЯ_ПОЛУЧЕНИЯ_ПИСЕМ@example.com', // <-- Замените на свой email
                         name: 'Администратор сайта'
                     }
                 ]
             }
         };
 
-        // 3. Отправляем письмо, используя токен в заголовке Authorization
         await axios.post(SENDPULSE_SEND_EMAIL_URL, emailData, {
             headers: {
                 'Authorization': `Bearer ${token}`
@@ -122,9 +122,10 @@ app.post('/api/contact', async (req, res) => {
 
 
 // --------------------------------------------------------------------------------
-// МАРШРУТЫ И ЗАПУСК СЕРВЕРА (остаются без изменений)
+// МАРШРУТЫ И ЗАПУСК СЕРВЕРА
 // --------------------------------------------------------------------------------
 app.get('/', (req, res) => {
+  // <--- ИЗМЕНЕНИЕ ЗДЕСЬ: Указываем новый HTML файл
   res.sendFile(path.join(__dirname, 'public', 'contactform.html'));
 });
 
